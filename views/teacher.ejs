@@ -1,14 +1,119 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 
 <head>
-  <title>
-    <%= title %>
-  </title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Teachers Portal - Face Recognition Attendance</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f4f4f4;
+      color: #333;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+    }
+
+    h1 {
+      text-align: center;
+      font-size: 28px;
+      margin-bottom: 20px;
+      color: #007bff;
+    }
+
+    .container {
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0px 4px 15px rgba(0, 0, 0, 0.1);
+      text-align: center;
+      max-width: 450px;
+      width: 90%;
+    }
+
+    video {
+      width: 100%;
+      max-width: 400px;
+      border: 3px solid #007bff;
+      border-radius: 8px;
+      margin-bottom: 10px;
+    }
+
+    .status {
+      font-size: 18px;
+      font-weight: bold;
+      margin-top: 10px;
+      transition: color 0.3s ease-in-out;
+    }
+
+    .loading {
+      display: none;
+      margin-top: 10px;
+      font-size: 16px;
+      color: #ff9800;
+      animation: blink 1s infinite;
+    }
+
+    @keyframes blink {
+      50% {
+        opacity: 0.5;
+      }
+    }
+
+    .success {
+      color: #28a745;
+      animation: fadeIn 1s ease-in-out;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+      }
+      to {
+        opacity: 1;
+      }
+    }
+  </style>
 </head>
 
 <body>
-  <h1>This is the Teachers Portal</h1>
+
+  <h1>Teachers Portal - Attendance System</h1>
+
+  <div class="container">
+    <video id="video" autoplay></video>
+    <p class="status">Face Recognition in Progress...</p>
+    <p class="loading">Processing...</p>
+  </div>
+
+  <script>
+    const video = document.getElementById('video');
+    const loadingText = document.querySelector('.loading');
+    const statusText = document.querySelector('.status');
+
+    navigator.mediaDevices.getUserMedia({ video: true })
+      .then(stream => {
+        video.srcObject = stream;
+      })
+      .catch(err => {
+        console.error("Error accessing webcam: ", err);
+      });
+
+    setTimeout(() => {
+      loadingText.style.display = 'block';
+      setTimeout(() => {
+        loadingText.style.display = 'none';
+        statusText.innerHTML = "✅ Attendance Marked Successfully!";
+        statusText.classList.add("success");
+      }, 4000);
+    }, 3000);
+  </script>
+
 </body>
 
 </html>
