@@ -78,7 +78,7 @@ Your backend will now be running on **http://localhost:8000**
 Feel free to contribute by forking the repository and submitting a pull request.
 
 ---
-##Author
+## Author
 Harshit Kumar Singh
 ---
 
