@@ -1,0 +1,72 @@
+from pymongo import MongoClient
+import face_recognition
+import cv2
+from datetime import datetime
+
+# Connect to MongoDB
+client = MongoClient('mongodb://localhost:27017/')
+db = client['student_attendance_db']
+students_collection = db['students']
+attendance_collection = db['attendance']
+
+def mark_attendance():
+    # Open the webcam
+    cap = cv2.VideoCapture(0)
+    if not cap.isOpened():
+        print("Error: Unable to access the webcam.")
+        return
+    
+    attendance_details = set()  # Use a set to avoid duplicate entries
+
+    print("Press 'q' to quit.")
+    while True:
+        ret, frame = cap.read()
+        if not ret:
+            print("Error: Unable to read from the webcam.")
+            break
+
+        rgb_frame = frame[:, :, ::-1]  # Convert BGR to RGB
+        face_locations = face_recognition.face_locations(rgb_frame)
+        face_encodings = face_recognition.face_encodings(rgb_frame, face_locations)
+
+        for face_encoding in face_encodings:
+            matches = []
+            for student in students_collection.find():
+                stored_encoding = student['face_encoding']
+                match = face_recognition.compare_faces([stored_encoding], face_encoding)
+                if match[0]:  # Match found
+                    student_name = student['name']
+                    student_roll_number = student['roll_number']
+
+                    # Avoid duplicate attendance on the same day
+                    date_today = datetime.now().strftime('%Y-%m-%d')
+                    if (student_roll_number, date_today) not in attendance_details:
+                        attendance_details.add((student_roll_number, date_today))
+                        attendance_collection.update_one(
+                            {
+                                'roll_number': student_roll_number,
+                                'date': date_today
+                            },
+                            {
+                                '$setOnInsert': {
+                                    'student_name': student_name,
+                                    'status': 'Present',
+                                    'date': date_today
+                                }
+                            },
+                            upsert=True
+                        )
+                        print(f"Attendance marked for {student_name} ({student_roll_number}).")
+                    break
+
+        # Display the webcam feed
+        cv2.imshow('Attendance', frame)
+        if cv2.waitKey(1) & 0xFF == ord('q'):  # Press 'q' to quit
+            break
+
+    cap.release()
+    cv2.destroyAllWindows()
+    print("Attendance process completed!")
+
+if __name__ == "__main__":
+    mark_attendance()
