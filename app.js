@@ -4,12 +4,12 @@ const bodyParser = require('body-parser');
 const fileUpload = require('express-fileupload');
 const path = require('path');
 const fs = require('fs');
-const cors = require('cors');
+const cors = require('cors');  
+const { PythonShell } = require('python-shell');
 const app = express();
-const axios = require("axios");
 const PORT = 8000;
-app.use(express.static('public'));
 
+app.use(express.static('public'));
 
 async function connectDB() {
   try {
@@ -23,7 +23,7 @@ async function connectDB() {
 connectDB();
 const Student = require('./models/student');
 
-app.use(cors());  
+app.use(cors());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 app.use(fileUpload());
@@ -31,7 +31,6 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'ejs');
-
 
 const uploadsDir = path.join(__dirname, 'public', 'uploads');
 if (!fs.existsSync(uploadsDir)) {
@@ -41,27 +40,24 @@ if (!fs.existsSync(uploadsDir)) {
 app.get('/', (req, res) => {
   res.render('index', { title: 'Markify' });
 });
-
 app.get('/Admin', (req, res) => {
   res.render('admin', { title: 'Admin Portal' });
 });
-
 app.get('/Teacher', (req, res) => {
-  res.render('teacher', { title: 'Teachers Portal' });
-});
+  let options = {
+    scriptPath: './',  
+    pythonPath: "C:\\Users\\KIIT\\AppData\\Local\\Programs\\Python\\Python313\\python.exe",
+  };
 
-const router = express.Router();
-const EXTERNAL_SERVER_URL = "http://localhost:4000/students";
-router.get("/student", async (req, res) => {
-    try {
-        const response = await axios.get(EXTERNAL_SERVER_URL);
-        res.render("student", { students: response.data.students || [], title: "Student Portal" });
-    } catch (error) {
-        console.error("Error fetching data:", error);
-        res.render("student", { students: [], title: "Student Portal", error: "Failed to fetch data" });
+  PythonShell.run('face.py', options, (err, results) => {
+    if (err) {
+      console.error(`Error: ${err.message}`);
+      return res.status(500).send('Failed to run Python script');
     }
+    console.log(`Python script output: ${results}`);
+    res.render('teacher', { title: 'Teachers Portal', output: results.join('\n') });
+  });
 });
-app.use("/", router);
 
 app.post('/Admin', async (req, res) => {
   try {
@@ -85,6 +81,7 @@ app.post('/Admin', async (req, res) => {
       console.log("Uploading file to:", uploadPath);
       await picture.mv(uploadPath);
     }
+
     if (req.body.capturedImage) {
       console.log("Base64 Image received");
 
@@ -111,39 +108,6 @@ app.post('/Admin', async (req, res) => {
     res.status(500).send({ success: false, message: "Failed to mark attendance", error: err.message });
   }
 });
-
-// const loadCSVData = () => {
-//   return new Promise((resolve, reject) => {
-//       let data = [];
-//       fs.createReadStream(path.join(__dirname, 'Attendance.csv')) 
-//           .pipe(csv())
-//           .on('data', (row) => {
-//               const student = {
-//                   name: row['Name'], 
-//                   rollNumber: row['Roll Number'],
-//                   totalDays: Object.keys(row).length - 2,
-//                   daysPresent: Object.values(row).filter(value => value.trim() === 'P').length,
-//                   daysAbsent: Object.values(row).filter(value => value.trim() === 'A').length,
-//                   attendancePercentage: ((Object.values(row).filter(value => value.trim() === 'P').length / (Object.keys(row).length - 2)) * 100).toFixed(2)
-//               };
-//               data.push(student);
-//           })
-//           .on('end', () => {
-//               console.log('CSV file successfully processed');
-//               resolve(data);
-//           })
-//           .on('error', (error) => reject(error));
-//   });
-// };
-// app.get('/student', async (req, res) => {
-//   try {
-//       studentsData = await loadCSVData();
-//       res.render('student', { students: studentsData });
-//   } catch (error) {
-//       res.status(500).send('Error loading student data');
-//   }
-// });
-
 
 app.listen(PORT, () => {
   console.log(`Server is running at http://localhost:${PORT}`);
